@@ -19,9 +19,25 @@ const upload = multer({ storage: multer.memoryStorage() });
 const PORT = Number(process.env.PORT || 8000);
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
 
+function normalizeOrigin(origin) {
+  return String(origin || '').trim().replace(/\/+$/, '');
+}
+
+const allowedOrigins = FRONTEND_ORIGIN.split(',')
+  .map((origin) => normalizeOrigin(origin))
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: FRONTEND_ORIGIN,
+    origin(origin, callback) {
+      // Allow non-browser clients and same-origin requests without Origin header.
+      if (!origin) {
+        return callback(null, true);
+      }
+      const normalizedRequestOrigin = normalizeOrigin(origin);
+      const isAllowed = allowedOrigins.includes(normalizedRequestOrigin);
+      return callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+    },
     credentials: true,
   })
 );

@@ -136,12 +136,6 @@ export default function AIAnalysisPreview({ analysis, draft, onSubmit }: AIAnaly
           </div>
         </div>
 
-        {/* AI Confidence */}
-        <div className="bg-white p-3 rounded-lg border border-blue-100">
-          <p className="text-xs text-slate-600 font-medium mb-2">Model Confidence Score</p>
-          <p className="text-sm text-slate-700">{analysis.confidence_score.toFixed(1)}%</p>
-        </div>
-
         {/* AI Summary */}
         {analysis.ai_summary && (
           <div className="bg-white p-3 rounded-lg border border-blue-100">

@@ -23,6 +23,7 @@ const DEPARTMENT_FALLBACK = {
 };
 
 const departmentCache = new Map();
+let geminiKeyCursor = 0;
 
 function clamp(num, min, max) {
   return Math.min(Math.max(num, min), max);
@@ -50,6 +51,67 @@ function parseJsonFromText(text) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getGeminiApiKeys() {
+  const keys = [];
+  const addKey = (value) => {
+    const normalized = String(value || '').trim();
+    if (normalized && !keys.includes(normalized)) {
+      keys.push(normalized);
+    }
+  };
+
+  const csvKeys = String(process.env.GEMINI_API_KEYS || '')
+    .split(',')
+    .map((key) => key.trim())
+    .filter(Boolean);
+  csvKeys.forEach(addKey);
+
+  const numberedKeys = Object.entries(process.env)
+    .filter(([name, value]) => /^GEMINI_API_KEY_\d+$/.test(name) && String(value || '').trim())
+    .sort((a, b) => {
+      const aIndex = Number(a[0].split('_').pop());
+      const bIndex = Number(b[0].split('_').pop());
+      return aIndex - bIndex;
+    })
+    .map(([, value]) => value);
+  numberedKeys.forEach(addKey);
+
+  addKey(process.env.GEMINI_API_KEY);
+  return keys;
+}
+
+function getOrderedGeminiApiKeys() {
+  const keys = getGeminiApiKeys();
+  if (!keys.length) return keys;
+  const start = geminiKeyCursor % keys.length;
+  geminiKeyCursor = (geminiKeyCursor + 1) % keys.length;
+  return [...keys.slice(start), ...keys.slice(0, start)];
+}
+
+function parseGeminiError(payloadText) {
+  if (!payloadText) return '';
+  try {
+    const parsed = JSON.parse(payloadText);
+    return String(parsed?.error?.status || parsed?.error?.message || payloadText);
+  } catch {
+    return String(payloadText);
+  }
+}
+
+function isQuotaOrRateLimitError(status, errorText) {
+  const normalized = String(errorText || '').toLowerCase();
+  if (status === 429) return true;
+  if (status === 403) {
+    return (
+      normalized.includes('quota') ||
+      normalized.includes('rate') ||
+      normalized.includes('resource_exhausted') ||
+      normalized.includes('exceeded')
+    );
+  }
+  return false;
 }
 
 function dominantRiskFromRows(rows) {
@@ -138,47 +200,63 @@ function heuristicAnalysis({ description, pincode, latitude, longitude, hasImage
 }
 
 async function callGemini(prompt, imagePart) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+  const apiKeys = getOrderedGeminiApiKeys();
+  if (!apiKeys.length) return null;
 
   const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const parts = [{ text: prompt }];
   if (imagePart) {
     parts.push({ inlineData: imagePart });
   }
 
-  const maxAttempts = 3;
-  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts }],
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: 'application/json',
-        },
-      }),
-    });
+  const maxAttemptsPerKey = 2;
+  let lastError = 'Unknown Gemini error';
 
-    if (response.ok) {
-      const data = await response.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      return parseJsonFromText(text);
+  for (const apiKey of apiKeys) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    for (let attempt = 0; attempt < maxAttemptsPerKey; attempt += 1) {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts }],
+          generationConfig: {
+            temperature: 0.2,
+            responseMimeType: 'application/json',
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        return parseJsonFromText(text);
+      }
+
+      const errorText = parseGeminiError(await response.text());
+      lastError = `status ${response.status}: ${errorText || 'request failed'}`;
+
+      // Exhausted or rate-limited keys should fail over immediately.
+      if (isQuotaOrRateLimitError(response.status, errorText)) {
+        break;
+      }
+
+      // Retry transient upstream issues, then try the next key.
+      if (response.status >= 500 && attempt < maxAttemptsPerKey - 1) {
+        await sleep(1200 * (attempt + 1));
+        continue;
+      }
+
+      if (response.status >= 500) {
+        break;
+      }
+
+      throw new Error(`Gemini request failed with ${lastError}`);
     }
-
-    const shouldRetry = (response.status === 429 || response.status >= 500) && attempt < maxAttempts - 1;
-    if (shouldRetry) {
-      await sleep(1200 * (attempt + 1));
-      continue;
-    }
-
-    throw new Error(`Gemini request failed with status ${response.status}`);
   }
 
-  throw new Error('Gemini request failed after retries');
+  throw new Error(`Gemini request failed for all API keys (${lastError})`);
 }
 
 function normalizeAnalysis(raw, fallback) {
@@ -344,8 +422,7 @@ async function generateReportWithAI({ clusters, complaints }) {
     ],
   };
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return fallback;
+  if (!getGeminiApiKeys().length) return fallback;
 
   try {
     const compactComplaints = complaints.map((row) => ({
@@ -475,9 +552,8 @@ function buildAddressStats(complaints) {
 }
 
 async function answerCivicQueryWithAI({ question, complaints, clusters }) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is required for chatbot responses.');
+  if (!getGeminiApiKeys().length) {
+    throw new Error('At least one Gemini API key is required for chatbot responses.');
   }
 
   if (!complaints.length) {

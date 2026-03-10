@@ -18,7 +18,10 @@ Backend service for the Civic dashboard frontend.
    - `cp .env.example .env` (or create manually on Windows)
 2. Ensure PostgreSQL is running and create DB:
    - DB name example: `civic_dev`
-3. Set `DATABASE_URL` and `GEMINI_API_KEY` in `.env`
+3. Set `DATABASE_URL` and Gemini key env vars in `.env`:
+   - Recommended: `GEMINI_API_KEYS=key1,key2,key3,key4`
+   - Also supported: `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, ...
+   - Optional fallback: `GEMINI_API_KEY`
 3. Install and run:
    - `npm install`
    - `npm run dev`

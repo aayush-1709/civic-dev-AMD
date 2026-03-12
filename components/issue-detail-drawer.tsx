@@ -56,9 +56,9 @@ export default function IssueDetailDrawer({
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent className="max-h-[90vh] flex flex-col">
-        <DrawerHeader className="flex items-start justify-between pb-4 border-b border-slate-200">
+        <DrawerHeader className="flex items-start justify-between gap-3 pb-4 border-b border-slate-200">
           <div className="flex-1">
-            <DrawerTitle className="text-2xl">{cluster.issue_type}</DrawerTitle>
+            <DrawerTitle className="text-xl sm:text-2xl break-words">{cluster.issue_type}</DrawerTitle>
             <p className="text-sm text-slate-600 mt-1">Pincode {cluster.pincode}</p>
           </div>
           <DrawerClose className="text-slate-400 hover:text-slate-600" asChild>
@@ -68,9 +68,9 @@ export default function IssueDetailDrawer({
           </DrawerClose>
         </DrawerHeader>
 
-        <div className="p-5 space-y-4 overflow-y-auto">
+        <div className="p-4 sm:p-5 space-y-4 overflow-y-auto">
           {/* Risk Level */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <p className="text-xs text-slate-600 font-medium mb-2">Risk Level</p>
               <RiskBadge level={cluster.risk_level} />
@@ -90,7 +90,7 @@ export default function IssueDetailDrawer({
           {/* Key Metrics */}
           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
             <h3 className="font-semibold text-slate-900 mb-4">Metrics</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-xs text-slate-600 font-medium mb-1">
                   Complaint Count
@@ -148,7 +148,7 @@ export default function IssueDetailDrawer({
                     key={complaint.complaint_id}
                     className="rounded-md border border-slate-200 bg-white p-4"
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col items-start justify-between gap-2 sm:flex-row">
                       <p className="text-sm font-semibold text-slate-900">
                         #{index + 1} • {complaint.complaint_id}
                       </p>

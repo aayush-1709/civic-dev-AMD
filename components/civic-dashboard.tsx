@@ -127,9 +127,13 @@ export default function CivicDashboard() {
           <CivicChatbot />
 
           <Tabs defaultValue="clusters" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="clusters">Cluster Dashboard</TabsTrigger>
-              <TabsTrigger value="complaints">Pincode Complaints Dashboard</TabsTrigger>
+            <TabsList className="grid h-auto w-full grid-cols-1 gap-2 p-1 sm:grid-cols-2">
+              <TabsTrigger value="clusters" className="text-xs sm:text-sm">
+                Cluster Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="complaints" className="text-xs sm:text-sm">
+                Pincode Complaints Dashboard
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="clusters" className="space-y-4">

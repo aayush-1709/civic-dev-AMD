@@ -77,14 +77,14 @@ export default function CivicChatbot() {
           )}
         </div>
 
-        <form onSubmit={handleAsk} className="flex items-center gap-2">
+        <form onSubmit={handleAsk} className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
           <Input
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             placeholder="Ask about complaints, pincodes, clusters..."
             className="border-slate-300"
           />
-          <Button type="submit" disabled={isLoading || !question.trim()}>
+          <Button type="submit" disabled={isLoading || !question.trim()} className="w-full sm:w-auto">
             Ask
           </Button>
         </form>

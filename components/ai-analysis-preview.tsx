@@ -67,14 +67,14 @@ export default function AIAnalysisPreview({ analysis, draft, onSubmit }: AIAnaly
       <CardContent className="space-y-4">
         {/* Issue Type and Risk Level */}
         <div className="space-y-2">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
             <div>
               <p className="text-xs text-slate-600 font-medium mb-1">Detected Issue Type</p>
-              <div className="inline-flex rounded-md bg-slate-200 text-slate-900 px-2 py-0.5 text-xs font-medium">
+              <div className="inline-flex max-w-full rounded-md bg-slate-200 text-slate-900 px-2 py-0.5 text-xs font-medium break-all">
                 {selectedIssueType}
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <p className="text-xs text-slate-600 font-medium mb-1">Risk Level</p>
               <RiskBadge level={selectedRiskLevel} />
             </div>

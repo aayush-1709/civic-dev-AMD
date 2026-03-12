@@ -164,7 +164,7 @@ export default function ApiValidatorPanel() {
   return (
     <Card className="border-slate-200 bg-white">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
           <CardTitle className="text-lg">API Validator</CardTitle>
           <Button size="sm" variant="outline" onClick={checkEndpoints} disabled={isChecking}>
             {isChecking ? (
@@ -184,16 +184,16 @@ export default function ApiValidatorPanel() {
           {results.map((item) => (
             <div
               key={item.id}
-              className="border border-slate-200 rounded-md p-3 flex items-center justify-between gap-3"
+              className="border border-slate-200 rounded-md p-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
             >
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-slate-900">
                   {item.method} {item.displayEndpoint}
                 </p>
                 <p className="text-xs text-slate-500">{item.label}</p>
                 {item.note && <p className="text-xs text-red-600 mt-1">{item.note}</p>}
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <div>{statusBadge(item.status)}</div>
                 {(item.httpStatus || item.latencyMs) && (
                   <p className="text-xs text-slate-500 mt-1">
